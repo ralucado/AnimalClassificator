@@ -1,17 +1,17 @@
 function[Mdl] =  img_classificator()
     %obtenim els vectors de característiques dels animals
-    PandaCarVec = getCarVec('/panda');
-    KangarooCarVec = getCarVec('/kangaroo');
-    FlamingoCarVec = getCarVec('/flamingo');
-    EmuCarVec = getCarVec('/emu');
-    ElephantCarVec = getCarVec('/elephant');
-    DragonflyCarVec = getCarVec('/dragonfly');
-    DolphinCarVec = getCarVec('/dolphin');
-    CrocodileCarVec = getCarVec('/crocodile');
-    CrayfishCarVec = getCarVec('/crayfish');
-    CrabCarVec = getCarVec('/crab');
-    BeaverCarVec = getCarVec('/beaver');
-    AntCarVec = getCarVec('/ant');
+    PandaCarVec = getCarVec('panda');
+    KangarooCarVec = getCarVec('kangaroo');
+    FlamingoCarVec = getCarVec('flamingo');
+    EmuCarVec = getCarVec('emu');
+    ElephantCarVec = getCarVec('elephant');
+    DragonflyCarVec = getCarVec('dragonfly');
+    DolphinCarVec = getCarVec('dolphin');
+    CrocodileCarVec = getCarVec('crocodile');
+    CrayfishCarVec = getCarVec('crayfish');
+    CrabCarVec = getCarVec('crab');
+    BeaverCarVec = getCarVec('beaver');
+    AntCarVec = getCarVec('ant');
     
     %creem vectors amb els mateixos tamanys amb les etiquetes de cada
     %especie
@@ -34,19 +34,18 @@ function[Mdl] =  img_classificator()
     %X conté la informació
     X = cat(1, PandaCarVec, KangarooCarVec, FlamingoCarVec, EmuCarVec, ElephantCarVec, DragonflyCarVec, DolphinCarVec, CrocodileCarVec, CrayfishCarVec, CrabCarVec, BeaverCarVec, AntCarVec);
     %Y conté les etiquetes
-    Y = cat(1, PandaEtiqVec, KangarooEtiqVec, FlamingoEtiqVec, EmuEtiqVec, ElephantEtiqVec, DragonflyEtiqVec, DolphinEtiqVec, CrocodileEtiqVec, CrayfishEtiqVec, CrabEtiqVec, BeaverEtiqVec, AntEtiqVec);
-    
-    Mdl = fitcknn(X,Y,'NumNeighbors',5,'Standardize',1); %% Aixo està tal qual de la web, haurem de jugar amb els valors.
-    
+    Y = [ PandaEtiqVec, KangarooEtiqVec, FlamingoEtiqVec, EmuEtiqVec, ElephantEtiqVec, DragonflyEtiqVec, DolphinEtiqVec, CrocodileEtiqVec, CrayfishEtiqVec, CrabEtiqVec, BeaverEtiqVec, AntEtiqVec];
+   
+    Mdl = fitcknn(X,Y);
     %un cop fet descomentat la seguent línia i calculant el vector de caracteristiques de la imatge a predir podrem comprovar si fa bè les
     %prediccions
     
-    %% prova = predict(Mdl, "vector de caracteristiques de la imatge a predir");
-    %% display(prova);
+    % prova = predict(Mdl, "vector de caracteristiques de la imatge a predir");
+    % display(prova);
 end
 
 function[carVecs] = getCarVec(path)
-
+    disp('animal: '); disp(path);
     %%Calculem el vector de característiques de les imatges de l'animal
     %%seleccionlat. 
 
@@ -56,28 +55,36 @@ function[carVecs] = getCarVec(path)
     
     
     for i=1:10  %% aqui enlloc de 10 hem de posar el nombre d'imatges de la carpeta
+        disp('analitzant imatge '); disp(i);
         if i < 10
-            img = imgread(path + '/Train/image_000' + i);
-            annotation = load(path + '/Train/annotation_000' + i);
+            img = imread(strcat(path,'/Train/image_000',num2str(i), '.jpg'));
+            annotation = load(strcat(path , '/Train/annotation_000' , num2str(i)));
         elseif i < 100
-            img = imgread(path + '/Train/image_00' + i);
-            annotation = load(path + '/Train/annotation_00' + i);
+            img = imread(strcat(path,'/Train/image_00',num2str(i), '.jpg'));
+            annotation = load(strcat(path , '/Train/annotation_00' , num2str(i)));
         elseif i < 1000
-            img = imgread(path + '/Train/image_0' + i);
-            annotation = load(path + '/Train/annotation_0' + i);
+            img = imread(strcat(path,'/Train/image_0',num2str(i), '.jpg'));
+            annotation = load(strcat(path , '/Train/annotation_0' , num2str(i)));
         else
-            img = imgread(path + '/Train/image_' + i);
-            annotation = load(path + '/Train/annotation_' + i);
+            img = imread(strcat(path,'/Train/image_',num2str(i), '.jpg'));
+            annotation = load(strcat(path , '/Train/annotation_' , num2str(i)));
         end
         
         %%obtenim el vector de característiques de la imatge i
-        carVecs(i) = scan(img, annotation);
+        carVecs(i, :) = scan(img, annotation);
         
     end
 end
 
-function[carVec] = scan(img, annotation)
+function[carVec2] = scan(img, annotation)
     
+    [a b x] = size(img);
+    if x == 1
+        cmap = gray(256);
+        img = ind2rgb(img, cmap);
+        img = uint8(img);
+    end
+
     %%obtenim l'alçada de l'animal
     height = annotation.box_coord(2) - annotation.box_coord(1);
     carVec.height = height;
@@ -100,35 +107,38 @@ function[carVec] = scan(img, annotation)
     %binaritzat
     carVec.area = sum(bin(:) == 1);
     %calculem també l'àrea relativa a la capsa contenidora
-    carVec.areaRel = carVec.area/(widht*height);
+    carVec.areaRel = carVec.area/(width*height);
     
     %contem el número de colors únics de la imatge
-    [carVec.numColors, carVec.Colors] = getUniqueColors(cImg);
+    carVec.numColors = getUniqueColors(cImg);
     
     %També calcularem propietats de textura utilitzant la funció
     %graycoprops
     
     %primer obtenim una matriu de co-ocurrencies en nivells de grisos de la
     %imatge
-    grayM = graycomatrix(img);
+    
+    grayM = graycomatrix(rgb2gray(img));
     
     %ara obtenim les propietats
     textureCar = graycoprops(grayM);
     
-    carVec.textureContrast = textureCar.contrast;
+    carVec.textureContrast = textureCar.Contrast;
     carVec.textureCorrelatioln = textureCar.Correlation;
     carVec.textureEnergy = textureCar.Energy;
     carVec.textureHomogenity = textureCar.Homogeneity;
     
+    carVec2 = [height, carVec.bounding_box, carVec.area,  carVec.areaRel, carVec.numColors, carVec.textureContrast, carVec.textureContrast, carVec.textureEnergy, carVec.textureHomogenity];
+    
 end
 
-function[cont, colors] = getUniqueColors(img)
+function[cont] = getUniqueColors(img)
     %extraiem les components de color
     redCh = img(:,:,1);
     greenCh = img(:,:,2);
     blueCh = img(:,:,3);
     
-    [rows, columns, x] = size(rgbImage);
+    [rows, columns, x] = size(img);
     acum = zeros(256,256,256);
     %contem quants cops apareix cada color
     for i=1:rows
@@ -150,14 +160,14 @@ function[cont, colors] = getUniqueColors(img)
             for blue = 1: 256
                 if (acum(red, green, blue) > 1)
                     % Record the RGB position of the color.
-                    r(nonZeroPixel) = red;
-                    g(nonZeroPixel) = green;
-                    b(nonZeroPixel) = blue;
+                    %r(cont) = red;
+                    %g(cont) = green;
+                    %b(cont) = blue;
                     cont = cont + 1;
                 end
             end
         end
     end
     cont = cont - 1;
-    colors = cat(3, r, g, b);
+    %colors = cat(3, r, g, b);
 end
