@@ -1,34 +1,34 @@
 function[Mdl] =  img_classificator()
     %obtenim els vectors de característiques dels animals
-    PandaCarVec = getCarVec('panda');
-    KangarooCarVec = getCarVec('kangaroo');
-    FlamingoCarVec = getCarVec('flamingo');
-    EmuCarVec = getCarVec('emu');
-    ElephantCarVec = getCarVec('elephant');
-    DragonflyCarVec = getCarVec('dragonfly');
-    DolphinCarVec = getCarVec('dolphin');
-    CrocodileCarVec = getCarVec('crocodile');
-    CrayfishCarVec = getCarVec('crayfish');
-    CrabCarVec = getCarVec('crab');
-    BeaverCarVec = getCarVec('beaver');
-    AntCarVec = getCarVec('ant');
+    PandaCarVec = getCarVec('panda', 28);
+    KangarooCarVec = getCarVec('kangaroo', 66);
+    FlamingoCarVec = getCarVec('flamingo', 51);
+    EmuCarVec = getCarVec('emu', 40);
+    ElephantCarVec = getCarVec('elephant', 49);
+    DragonflyCarVec = getCarVec('dragonfly', 52);
+    DolphinCarVec = getCarVec('dolphin', 50);
+    CrocodileCarVec = getCarVec('crocodile', 38);
+    CrayfishCarVec = getCarVec('crayfish', 54);
+    CrabCarVec = getCarVec('crab', 56);
+    BeaverCarVec = getCarVec('beaver', 34);
+    AntCarVec = getCarVec('ant', 31);
     
     %creem vectors amb els mateixos tamanys amb les etiquetes de cada
     %especie
     %TO DO: Aqui els 10 s'han de canviar pel nombre d'imatges que haguem seleccionat per cada animal
 
-    PandaEtiqVec(1:10) = "panda";
-    KangarooEtiqVec(1:10) = "kangaroo";
-    FlamingoEtiqVec(1:10) = "flamingo";
-    EmuEtiqVec(1:10) = "emu";
-    ElephantEtiqVec(1:10) = "elephant";
-    DragonflyEtiqVec(1:10) = "dragon";
-    DolphinEtiqVec(1:10) = "dolphin";
-    CrocodileEtiqVec(1:10) = "crocodile";
-    CrayfishEtiqVec(1:10) = "crayfish";
-    CrabEtiqVec(1:10) = "crab";
-    BeaverEtiqVec(1:10) = "beaver";
-    AntEtiqVec(1:10) = "ant";
+    PandaEtiqVec(1:28) = "panda";
+    KangarooEtiqVec(1:66) = "kangaroo";
+    FlamingoEtiqVec(1:51) = "flamingo";
+    EmuEtiqVec(1:40) = "emu";
+    ElephantEtiqVec(1:49) = "elephant";
+    DragonflyEtiqVec(1:52) = "dragon";
+    DolphinEtiqVec(1:50) = "dolphin";
+    CrocodileEtiqVec(1:38) = "crocodile";
+    CrayfishEtiqVec(1:54) = "crayfish";
+    CrabEtiqVec(1:56) = "crab";
+    BeaverEtiqVec(1:34) = "beaver";
+    AntEtiqVec(1:31) = "ant";
     
     
     %X conté la informació
@@ -44,7 +44,7 @@ function[Mdl] =  img_classificator()
     % display(prova);
 end
 
-function[carVecs] = getCarVec(path)
+function[carVecs] = getCarVec(path, iter)
     disp('animal: '); disp(path);
     %%Calculem el vector de característiques de les imatges de l'animal
     %%seleccionlat. 
@@ -54,7 +54,7 @@ function[carVecs] = getCarVec(path)
     %%caractirístiques.
     
     
-    for i=1:10  %% aqui enlloc de 10 hem de posar el nombre d'imatges de la carpeta
+    for i=1:iter  %% aqui enlloc de 10 hem de posar el nombre d'imatges de la carpeta
         disp('analitzant imatge '); disp(i);
         if i < 10
             img = imread(strcat(path,'/Train/image_000',num2str(i), '.jpg'));
@@ -74,6 +74,8 @@ function[carVecs] = getCarVec(path)
         carVecs(i, :) = scan(img, annotation);
         
     end
+
+    
 end
 
 function[carVec2] = scan(img, annotation)
@@ -88,8 +90,6 @@ function[carVec2] = scan(img, annotation)
     %%obtenim l'alçada de l'animal
     height = annotation.box_coord(2) - annotation.box_coord(1);
     carVec.height = height;
-    %obtenim la capça contenidora
-    carVec.bounding_box = annotation.box_coord;
     
     %fem un crop de la bounding box per ignorar el background
     %de la imatge
@@ -97,6 +97,22 @@ function[carVec2] = scan(img, annotation)
     xmin = annotation.box_coord(1);
     ymin = annotation.box_coord(3);
     cImg = imcrop(img, [xmin ymin width carVec.height]);
+    [r, c] = size(cImg);
+    
+    %%obtenim el perimetre de l'animal
+    
+    points = annotation.obj_contour;
+
+    perimeter = 0;
+
+    for i = 1:size(points, 1)-1
+
+    perimeter = perimeter + norm(points(i, :) - points(i+1, :));
+
+    end
+
+    perimeter = perimeter + norm(points(end, :) - points(1, :)); % Last point to first
+    
     
     
     %%obtenim l'area de l'animal i l'area respecte la capça contenidora
@@ -107,7 +123,16 @@ function[carVec2] = scan(img, annotation)
     %binaritzat
     carVec.area = sum(bin(:) == 1);
     %calculem també l'àrea relativa a la capsa contenidora
-    carVec.areaRel = carVec.area/(width*height);
+    carVec.areaRel = carVec.area/(r*c);
+    
+    %i l'area relativa al perimetre
+    carVec.areaRel2 = carVec.area/perimeter;
+    
+    %i la corbatura (perimetre/canvis direccio)
+    carVec.corbatura = perimeter/size(points, 1);
+    
+    %i la compacitat (perimetre^2/area)
+    carVec.compacitat = perimeter^2/carVec.area;
     
     %contem el número de colors únics de la imatge
     carVec.numColors = getUniqueColors(cImg);
@@ -124,11 +149,11 @@ function[carVec2] = scan(img, annotation)
     textureCar = graycoprops(grayM);
     
     carVec.textureContrast = textureCar.Contrast;
-    carVec.textureCorrelatioln = textureCar.Correlation;
+    carVec.textureCorrelation = textureCar.Correlation;
     carVec.textureEnergy = textureCar.Energy;
     carVec.textureHomogenity = textureCar.Homogeneity;
     
-    carVec2 = [height, carVec.bounding_box, carVec.area,  carVec.areaRel, carVec.numColors, carVec.textureContrast, carVec.textureContrast, carVec.textureEnergy, carVec.textureHomogenity];
+    carVec2 = [height, carVec.area,  carVec.areaRel, carVec.numColors, carVec.textureContrast, carVec.textureCorrelation, carVec.textureEnergy, carVec.textureHomogenity];
     
 end
 
