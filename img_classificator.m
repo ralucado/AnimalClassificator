@@ -156,11 +156,18 @@ function[carVec2] = scan(img, annotation)
     
 end
 
+
 function[cont] = getUniqueColors(img)
+
     %extraiem les components de color
     redCh = img(:,:,1);
     greenCh = img(:,:,2);
     blueCh = img(:,:,3);
+    sum = redCh + greenCh + blueCh;
+    
+    redCh = redCh./sum;
+    greenCh = greenCh./sum;
+    blueCh = blueCh./sum;
     
     [rows, columns, ~] = size(img);
     acum = zeros(256,256,256);

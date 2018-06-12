@@ -1,29 +1,3 @@
-X = []; Y = [];
-load XAllCars;
-load Y;
-
-CarVecs = []; EtiqVecs = [];
-load testAllCars;
-load testEtiqVecs;
-
-Mdl = fitcdiscr(X,Y);
-
-certs = 0;
-falsos = 0;
-
-for i = 1:138
-    prova = predict(Mdl, CarVecs(i,:));
-    if (prova == EtiqVecs(i))
-        certs = certs +1;
-    else
-        falsos = falsos + 1;
-    end
-end
-
-display("% Error:");
-display(falsos*100/(certs+falsos));
-
-function[] = loadTestVecs()   
     PandaCarVec = getCarVec('panda', 29, 36);
     KangarooCarVec = getCarVec('kangaroo', 67, 83);
     FlamingoCarVec = getCarVec('flamingo', 52, 64);
@@ -54,6 +28,35 @@ function[] = loadTestVecs()
     
     CarVecs = [PandaCarVec; KangarooCarVec; FlamingoCarVec; EmuCarVec; ElephantCarVec; DragonflyCarVec; DolphinCarVec; CrocodileCarVec; CrayfishCarVec; CrabCarVec; BeaverCarVec; AntCarVec];
     EtiqVecs = [PandaEtiqVec, KangarooEtiqVec, FlamingoEtiqVec, EmuEtiqVec, ElephantEtiqVec, DragonflyEtiqVec, DolphinEtiqVec, CrocodileEtiqVec, CrayfishEtiqVec, CrabEtiqVec, BeaverEtiqVec, AntEtiqVec];
+
+
+function[] = loadTestVecs()   
+
+X = []; Y = [];
+load XAllCars;
+load Y;
+
+CarVecs = []; EtiqVecs = [];
+load testAllCars;
+load testEtiqVecs;
+
+Mdl = fitcdiscr(X,Y);
+
+certs = 0;
+falsos = 0;
+
+for i = 1:138
+    prova = predict(Mdl, CarVecs(i,:));
+    if (prova == EtiqVecs(i))
+        certs = certs +1;
+    else
+        falsos = falsos + 1;
+    end
+end
+
+display("% Error:");
+display(falsos*100/(certs+falsos));
+
 end
 
 
@@ -166,10 +169,16 @@ function[carVec2] = scan(img, annotation)
 end
 
 function[cont] = getUniqueColors(img)
+
     %extraiem les components de color
     redCh = img(:,:,1);
     greenCh = img(:,:,2);
     blueCh = img(:,:,3);
+    sum = redCh + greenCh + blueCh;
+    
+    redCh = redCh./sum;
+    greenCh = greenCh./sum;
+    blueCh = blueCh./sum;
     
     [rows, columns, ~] = size(img);
     acum = zeros(256,256,256);
