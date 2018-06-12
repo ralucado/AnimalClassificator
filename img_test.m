@@ -1,5 +1,16 @@
+X = []; Y = [];
+load XAllCars;
+load Y;
+
+CarVecs = []; EtiqVecs = [];
+load testAllCars;
+load testEtiqVecs;
+
+Mdl = fitcdiscr(X,Y);
+
 certs = 0;
 falsos = 0;
+
 for i = 1:138
     prova = predict(Mdl, CarVecs(i,:));
     if (prova == EtiqVecs(i))
@@ -12,7 +23,7 @@ end
 display("% Error:");
 display(falsos*100/(certs+falsos));
 
-function[] = loadTestVecs()    
+function[] = loadTestVecs()   
     PandaCarVec = getCarVec('panda', 29, 36);
     KangarooCarVec = getCarVec('kangaroo', 67, 83);
     FlamingoCarVec = getCarVec('flamingo', 52, 64);
@@ -41,9 +52,11 @@ function[] = loadTestVecs()
     BeaverEtiqVec(1:9) = "beaver";
     AntEtiqVec(1:8) = "ant";
     
-    CarVecs = [PandaCarVec, KangarooCarVec, FlamingoCarVec, EmuCarVec, ElephantCarVec, DragonflyCarVec, DolphinCarVec, CrocodileCarVec, CrayfishCarVec, CrabCarVec, BeaverCarVec, AntCarVec];
+    CarVecs = [PandaCarVec; KangarooCarVec; FlamingoCarVec; EmuCarVec; ElephantCarVec; DragonflyCarVec; DolphinCarVec; CrocodileCarVec; CrayfishCarVec; CrabCarVec; BeaverCarVec; AntCarVec];
     EtiqVecs = [PandaEtiqVec, KangarooEtiqVec, FlamingoEtiqVec, EmuEtiqVec, ElephantEtiqVec, DragonflyEtiqVec, DolphinEtiqVec, CrocodileEtiqVec, CrayfishEtiqVec, CrabEtiqVec, BeaverEtiqVec, AntEtiqVec];
 end
+
+
 
 function[] = single_img_test(path, i)
     global Mdl;
@@ -120,19 +133,9 @@ function[carVec2] = scan(img, annotation)
     
     
     
-    %%obtenim l'area de l'animal i l'area respecte la capça contenidora
-    
-    %binaritzem la imatge
-    bin = imbinarize(cImg);  %utilitza un mètode d'un tal Otsu per calcular el treshold, pero hauriem de buscarlo empiricament
-    %obtenim l'àrea contant el numero de pixels de color blanc del
-    %binaritzat
-    carVec.area = sum(bin(:) == 1);
-    %calculem també l'àrea relativa a la capsa contenidora
-    carVec.areaRel = carVec.area/(r*c);
-    
-    %i l'area relativa al perimetre
-    carVec.areaRel2 = carVec.area/perimeter;
-    
+    %obtenim l'area de l'animal i l'area respecte la capça contenidora
+    carVec.area = polyarea(points(1,:), points(2,:));
+    carVec.areaRatio =  carVec.area/(r*c);
     %i la corbatura (perimetre/canvis direccio)
     carVec.corbatura = perimeter/size(points, 1);
     
@@ -158,10 +161,9 @@ function[carVec2] = scan(img, annotation)
     carVec.textureEnergy = textureCar.Energy;
     carVec.textureHomogenity = textureCar.Homogeneity;
     
-    carVec2 = [height, carVec.area,  carVec.areaRel, carVec.numColors, carVec.textureContrast, carVec.textureCorrelation, carVec.textureEnergy, carVec.textureHomogenity];
+    carVec2 = [carVec.areaRatio, carVec.compacitat, carVec.corbatura, carVec.numColors, carVec.textureContrast, carVec.textureCorrelation, carVec.textureEnergy, carVec.textureHomogenity];
     
 end
-
 
 function[cont] = getUniqueColors(img)
     %extraiem les components de color

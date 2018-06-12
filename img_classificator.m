@@ -28,12 +28,16 @@
     BeaverEtiqVec(1:34) = "beaver";
     AntEtiqVec(1:31) = "ant";
     
-    c_type = 1;
+    c_type = 2;
     %X conté la informació
     X = cat(1, PandaCarVec, KangarooCarVec, FlamingoCarVec, EmuCarVec, ElephantCarVec, DragonflyCarVec, DolphinCarVec, CrocodileCarVec, CrayfishCarVec, CrabCarVec, BeaverCarVec, AntCarVec);
     %Y conté les etiquetes
     Y = [ PandaEtiqVec, KangarooEtiqVec, FlamingoEtiqVec, EmuEtiqVec, ElephantEtiqVec, DragonflyEtiqVec, DolphinEtiqVec, CrocodileEtiqVec, CrayfishEtiqVec, CrabEtiqVec, BeaverEtiqVec, AntEtiqVec];
-	if(c_type == 1)
+	
+    save X5chars X;
+    save Y5chars Y;
+    
+    if(c_type == 1)
         Mdl = fitcnb(X,Y);
     elseif (c_type == 2)
         Mdl = fitcdiscr(X,Y);
@@ -120,19 +124,9 @@ function[carVec2] = scan(img, annotation)
     
     
     
-    %%obtenim l'area de l'animal i l'area respecte la capça contenidora
-    
-    %binaritzem la imatge
-    bin = imbinarize(cImg);  %utilitza un mètode d'un tal Otsu per calcular el treshold, pero hauriem de buscarlo empiricament
-    %obtenim l'àrea contant el numero de pixels de color blanc del
-    %binaritzat
-    carVec.area = sum(bin(:) == 1);
-    %calculem també l'àrea relativa a la capsa contenidora
-    carVec.areaRel = carVec.area/(r*c);
-    
-    %i l'area relativa al perimetre
-    carVec.areaRel2 = carVec.area/perimeter;
-    
+    %obtenim l'area de l'animal i l'area respecte la capça contenidora
+    carVec.area = polyarea(points(1,:), points(2,:));
+    carVec.areaRatio =  carVec.area/(r*c);
     %i la corbatura (perimetre/canvis direccio)
     carVec.corbatura = perimeter/size(points, 1);
     
@@ -158,7 +152,7 @@ function[carVec2] = scan(img, annotation)
     carVec.textureEnergy = textureCar.Energy;
     carVec.textureHomogenity = textureCar.Homogeneity;
     
-    carVec2 = [height, carVec.area,  carVec.areaRel, carVec.numColors, carVec.textureContrast, carVec.textureCorrelation, carVec.textureEnergy, carVec.textureHomogenity];
+    carVec2 = [carVec.areaRatio, carVec.compacitat, carVec.corbatura, carVec.numColors, carVec.textureContrast, carVec.textureCorrelation, carVec.textureEnergy, carVec.textureHomogenity];
     
 end
 
