@@ -1,29 +1,72 @@
-X = []; Y = [];
-load XAllCars;
-load Y;
+function[]=makeTest()
+%Carreguem els vectors de caracteristiques precomputats
+    X = []; Y = [];
+    load XAllCars;
+    load Y;
 
-CarVecs = []; EtiqVecs = [];
-load testAllCars;
-load testEtiqVecs;
+    CarVecs = []; EtiqVecs = [];
+    load testAllCars;
+    load testEtiqVecs;
 
-Mdl = fitcdiscr(X,Y);
+    newX = [X(:,1), X(:,2),X(:,3),X(:,4), X(:,5)]; 
+    newCarVecs = [CarVecs(:,1),CarVecs(:,2),CarVecs(:,3),CarVecs(:,4), CarVecs(:,5)];
+    Mdl = fitcdiscr(newX,Y);
 
-certs = 0;
-falsos = 0;
+    certs = 0;
+    falsos = 0;
+    matConf = zeros(12:12);
+    for i = 1:138
+        prova = predict(Mdl, newCarVecs(i,:));
+        if (prova == EtiqVecs(i))
+            certs = certs +1;
+        else
+            falsos = falsos + 1;
+        end
+        numGuessed = animalToIndex(prova);
+        numCorr = animalToIndex(EtiqVecs(i));
+        matConf(numCorr, numGuessed) =  matConf(numCorr, numGuessed) + 1; 
+    end
 
-for i = 1:138
-    prova = predict(Mdl, CarVecs(i,:));
-    if (prova == EtiqVecs(i))
-        certs = certs +1;
-    else
-        falsos = falsos + 1;
+    display("% Error:");
+    display(falsos*100/(certs+falsos));
+
+    for i = 1:549
+    ind(i) = animalToIndex(Y(i));
     end
 end
 
-display("% Error:");
-display(falsos*100/(certs+falsos));
 
-function[] = loadTestVecs()       
+
+function[i] = animalToIndex(animal)
+    i = 0;
+    if(animal == "panda")
+        i = 1;
+    elseif (animal == "kangaroo")
+        i = 2;
+    elseif (animal == "flamingo")
+        i = 3;
+    elseif (animal == "emu")
+        i = 4;
+    elseif (animal == "elephant")
+        i = 5;
+    elseif (animal == "dragon")
+        i = 6;
+    elseif (animal == "dolphin")
+        i = 7;
+    elseif (animal == "crocodile")
+        i = 8;
+    elseif (animal == "crayfish")
+        i = 9;
+    elseif (animal == "crab")
+        i = 10;
+    elseif (animal == "beaver")
+        i = 11;
+    else
+        i = 12;
+    end
+end
+
+function[] = loadBulkTestVecs()       
     PandaCarVec = getCarVec('panda', 29, 36);
     KangarooCarVec = getCarVec('kangaroo', 67, 83);
     FlamingoCarVec = getCarVec('flamingo', 52, 64);
@@ -55,158 +98,4 @@ function[] = loadTestVecs()
     CarVecs = [PandaCarVec; KangarooCarVec; FlamingoCarVec; EmuCarVec; ElephantCarVec; DragonflyCarVec; DolphinCarVec; CrocodileCarVec; CrayfishCarVec; CrabCarVec; BeaverCarVec; AntCarVec];
     EtiqVecs = [PandaEtiqVec, KangarooEtiqVec, FlamingoEtiqVec, EmuEtiqVec, ElephantEtiqVec, DragonflyEtiqVec, DolphinEtiqVec, CrocodileEtiqVec, CrayfishEtiqVec, CrabEtiqVec, BeaverEtiqVec, AntEtiqVec];
 
-end
-
-function[] = single_img_test(path, i)
-    global Mdl;
-    img = imread(strcat(path,'/image_00',num2str(i), '.jpg'));
-    annotation = load(strcat(path,'/annotation_00',num2str(i)));
-
-    carVec=scan(img, annotation);
-
-    prova = predict(Mdl, carVec);
-    display(prova);
-end
-
-function[carVecs] = getCarVec(path, iter, fi)
-    disp('animal: '); disp(path);
-    %%Calculem el vector de característiques de les imatges de l'animal
-    %%seleccionlat. 
-
-    %%Carreguem les diferents imatges d'entrenament amb les anotacions
-    %%corresponents, que aprofitarem per deduir algunes de les
-    %%caractirístiques.
-    
-    
-    for i=iter:fi 
-        disp('analitzant imatge '); disp(i);
-        if i < 10
-            img = imread(strcat(path,'/image_000',num2str(i), '.jpg'));
-            annotation = load(strcat(path , '/annotation_000' , num2str(i)));
-        else
-            img = imread(strcat(path,'/image_00',num2str(i), '.jpg'));
-            annotation = load(strcat(path , '/annotation_00' , num2str(i)));
-        end
-        %%obtenim el vector de característiques de la imatge i
-        carVecs((i - iter)+1, :) = scan(img, annotation);
-        
-    end
-
-    
-end
-
-
-function[carVec2] = scan(img, annotation)
-    
-    [~, ~, x] = size(img);
-    if x == 1
-        cmap = gray(256);
-        img = ind2rgb(img, cmap);
-        img = uint8(img);
-    end
-
-    %%obtenim l'alçada de l'animal
-    height = annotation.box_coord(2) - annotation.box_coord(1);
-    carVec.height = height;
-    
-    %fem un crop de la bounding box per ignorar el background
-    %de la imatge
-    width = annotation.box_coord(4) - annotation.box_coord(3);
-    xmin = annotation.box_coord(1);
-    ymin = annotation.box_coord(3);
-    cImg = imcrop(img, [xmin ymin width carVec.height]);
-    [r, c] = size(cImg);
-    
-    %%obtenim el perimetre de l'animal
-    points = annotation.obj_contour;
-    perimeter = 0;
-
-    for i = 1:size(points, 1)-1
-    perimeter = perimeter + norm(points(i, :) - points(i+1, :));
-    end
-
-    perimeter = perimeter + norm(points(end, :) - points(1, :)); % Last point to first
-   
-    %obtenim l'area de l'animal i l'area respecte la capça contenidora
-    carVec.area = polyarea(points(1,:), points(2,:));
-    %calculem la rectangularitat
-    carVec.rectangularitat =  carVec.area/(r*c);
-    %calculem la elongació
-    carVec.elongacio = height/width;
-    
-    %i la corbatura (perimetre/canvis direccio)
-    carVec.corbatura = perimeter/size(points, 1);
-    
-    %i la compacitat (perimetre^2/area)
-    carVec.compacitat = perimeter^2/carVec.area;
-    
-    %obtenim els moments de hu (agafem només els dos primers)
-    moms = feature_vec(points);
-    carVec.M1 = moms(1);
-    carVec.M2 = moms(2);
-  
-    %contem el número de colors únics de la imatge
-    carVec.numColors = getUniqueColors(cImg);
-    
-    %També calcularem propietats de textura utilitzant la funció
-    %graycoprops
-    %primer obtenim una matriu de co-ocurrencies en nivells de grisos de la
-    %imatge
-    grayM = graycomatrix(rgb2gray(img));
-    
-    %ara obtenim les propietats
-    textureCar = graycoprops(grayM);
-    carVec.textureContrast = textureCar.Contrast;
-    carVec.textureCorrelation = textureCar.Correlation;
-    carVec.textureEnergy = textureCar.Energy;
-    carVec.textureHomogenity = textureCar.Homogeneity;
- 
-    carVec2 = [carVec.rectangularitat, carVec.compacitat, carVec.corbatura, carVec.elongacio, carVec.M1, carVec.M2, carVec.numColors, carVec.textureContrast, carVec.textureCorrelation, carVec.textureEnergy, carVec.textureHomogenity];
-    
-end
-
-function[cont] = getUniqueColors(img)
-
-    %extraiem les components de color
-    redCh = img(:,:,1);
-    greenCh = img(:,:,2);
-    blueCh = img(:,:,3);
-    sum = redCh + greenCh + blueCh;
-    
-    redCh = redCh./sum;
-    greenCh = greenCh./sum;
-    blueCh = blueCh./sum;
-    
-    [rows, columns, ~] = size(img);
-    acum = zeros(256,256,256);
-    %contem quants cops apareix cada color
-    for i=1:rows
-        for j=1:columns
-            rIndex = redCh(i, j) + 1;
-            gIndex = greenCh(i, j) + 1;
-            bIndex = blueCh(i, j) + 1;
-            acum(rIndex, gIndex, bIndex) = acum(rIndex, gIndex, bIndex) + 1;
-        end
-    end
-    
-    r = zeros(256, 1);
-    g = zeros(256, 1);
-    b = zeros(256, 1);
-    cont = 1;
-    %contem quants colors diferents hi ha i quins son
-    for red = 1 : 256
-        for green = 1: 256
-            for blue = 1: 256
-                if (acum(red, green, blue) > 1)
-                    % Record the RGB position of the color.
-                    %r(cont) = red;
-                    %g(cont) = green;
-                    %b(cont) = blue;
-                    cont = cont + 1;
-                end
-            end
-        end
-    end
-    cont = cont - 1;
-    %colors = cat(3, r, g, b);
 end
