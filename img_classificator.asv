@@ -27,12 +27,25 @@
     CrabEtiqVec(1:56) = "crab";
     BeaverEtiqVec(1:34) = "beaver";
     AntEtiqVec(1:31) = "ant";
-   
+    
+    c_type = 2;
     %X conté la informació
     X = cat(1, PandaCarVec, KangarooCarVec, FlamingoCarVec, EmuCarVec, ElephantCarVec, DragonflyCarVec, DolphinCarVec, CrocodileCarVec, CrayfishCarVec, CrabCarVec, BeaverCarVec, AntCarVec);
     %Y conté les etiquetes
     Y = [ PandaEtiqVec, KangarooEtiqVec, FlamingoEtiqVec, EmuEtiqVec, ElephantEtiqVec, DragonflyEtiqVec, DolphinEtiqVec, CrocodileEtiqVec, CrayfishEtiqVec, CrabEtiqVec, BeaverEtiqVec, AntEtiqVec];
+	
+    save X5chars X;
+    save Y5chars Y;
     
+    if(c_type == 1)
+        Mdl = fitcnb(X,Y);
+    elseif (c_type == 2)
+        Mdl = fitcdiscr(X,Y);
+    elseif (c_type == 3)
+        Mdl = fitctree(X,Y);
+    else
+        Mdl = fitcknn(X,Y);
+	end
     %un cop fet descomentat la seguent línia i calculant el vector de caracteristiques de la imatge a predir podrem comprovar si fa bè les
     %prediccions
     
@@ -74,6 +87,7 @@ function[carVecs] = getCarVec(path, iter)
     
 end
 
+
 function[carVec2] = scan(img, annotation)
     
     [~, ~, x] = size(img);
@@ -109,8 +123,8 @@ function[carVec2] = scan(img, annotation)
     carVec.area = polyarea(points(1,:), points(2,:));
     %calculem la rectangularitat
     carVec.rectangularitat =  carVec.area/(r*c);
-    %calculem la elongació
-    carVec.elongacio = height/width;
+    %calculem elongació
+    carVec.elongacio = height/widht;
     
     %i la corbatura (perimetre/canvis direccio)
     carVec.corbatura = perimeter/size(points, 1);
@@ -139,9 +153,12 @@ function[carVec2] = scan(img, annotation)
     carVec.textureEnergy = textureCar.Energy;
     carVec.textureHomogenity = textureCar.Homogeneity;
  
-    carVec2 = [carVec.rectangularitat, carVec.compacitat, carVec.corbatura, carVec.elongacio, carVec.M1, carVec.M2, carVec.numColors, carVec.textureContrast, carVec.textureCorrelation, carVec.textureEnergy, carVec.textureHomogenity];
+    carVec2 = [carVec.rectangularitat, carVec.compacitat, carVec.corbatura,
+      carVec.numColors, carVec.textureContrast, carVec.textureCorrelation,
+      carVec.textureEnergy, carVec.textureHomogenity];
     
 end
+
 
 function[cont] = getUniqueColors(img)
 

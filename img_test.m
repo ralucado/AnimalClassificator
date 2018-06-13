@@ -1,3 +1,29 @@
+X = []; Y = [];
+load XAllCars;
+load Y;
+
+CarVecs = []; EtiqVecs = [];
+load testAllCars;
+load testEtiqVecs;
+
+Mdl = fitcdiscr(X,Y);
+
+certs = 0;
+falsos = 0;
+
+for i = 1:138
+    prova = predict(Mdl, CarVecs(i,:));
+    if (prova == EtiqVecs(i))
+        certs = certs +1;
+    else
+        falsos = falsos + 1;
+    end
+end
+
+display("% Error:");
+display(falsos*100/(certs+falsos));
+
+function[] = loadTestVecs()       
     PandaCarVec = getCarVec('panda', 29, 36);
     KangarooCarVec = getCarVec('kangaroo', 67, 83);
     FlamingoCarVec = getCarVec('flamingo', 52, 64);
@@ -29,37 +55,7 @@
     CarVecs = [PandaCarVec; KangarooCarVec; FlamingoCarVec; EmuCarVec; ElephantCarVec; DragonflyCarVec; DolphinCarVec; CrocodileCarVec; CrayfishCarVec; CrabCarVec; BeaverCarVec; AntCarVec];
     EtiqVecs = [PandaEtiqVec, KangarooEtiqVec, FlamingoEtiqVec, EmuEtiqVec, ElephantEtiqVec, DragonflyEtiqVec, DolphinEtiqVec, CrocodileEtiqVec, CrayfishEtiqVec, CrabEtiqVec, BeaverEtiqVec, AntEtiqVec];
 
-
-function[] = loadTestVecs()   
-
-X = []; Y = [];
-load XAllCars;
-load Y;
-
-CarVecs = []; EtiqVecs = [];
-load testAllCars;
-load testEtiqVecs;
-
-Mdl = fitcdiscr(X,Y);
-
-certs = 0;
-falsos = 0;
-
-for i = 1:138
-    prova = predict(Mdl, CarVecs(i,:));
-    if (prova == EtiqVecs(i))
-        certs = certs +1;
-    else
-        falsos = falsos + 1;
-    end
 end
-
-display("% Error:");
-display(falsos*100/(certs+falsos));
-
-end
-
-
 
 function[] = single_img_test(path, i)
     global Mdl;
@@ -99,6 +95,7 @@ function[carVecs] = getCarVec(path, iter, fi)
     
 end
 
+
 function[carVec2] = scan(img, annotation)
     
     [~, ~, x] = size(img);
@@ -121,50 +118,50 @@ function[carVec2] = scan(img, annotation)
     [r, c] = size(cImg);
     
     %%obtenim el perimetre de l'animal
-    
     points = annotation.obj_contour;
-
     perimeter = 0;
 
     for i = 1:size(points, 1)-1
-
     perimeter = perimeter + norm(points(i, :) - points(i+1, :));
-
     end
 
     perimeter = perimeter + norm(points(end, :) - points(1, :)); % Last point to first
-    
-    
-    
+   
     %obtenim l'area de l'animal i l'area respecte la capça contenidora
     carVec.area = polyarea(points(1,:), points(2,:));
-    carVec.areaRatio =  carVec.area/(r*c);
+    %calculem la rectangularitat
+    carVec.rectangularitat =  carVec.area/(r*c);
+    %calculem la elongació
+    carVec.elongacio = height/width;
+    
     %i la corbatura (perimetre/canvis direccio)
     carVec.corbatura = perimeter/size(points, 1);
     
     %i la compacitat (perimetre^2/area)
     carVec.compacitat = perimeter^2/carVec.area;
     
+    %obtenim els moments de hu (agafem només els dos primers)
+    moms = feature_vec(points);
+    carVec.M1 = moms(1);
+    carVec.M2 = moms(2);
+  
     %contem el número de colors únics de la imatge
     carVec.numColors = getUniqueColors(cImg);
     
     %També calcularem propietats de textura utilitzant la funció
     %graycoprops
-    
     %primer obtenim una matriu de co-ocurrencies en nivells de grisos de la
     %imatge
-    
     grayM = graycomatrix(rgb2gray(img));
     
     %ara obtenim les propietats
     textureCar = graycoprops(grayM);
-    
     carVec.textureContrast = textureCar.Contrast;
     carVec.textureCorrelation = textureCar.Correlation;
     carVec.textureEnergy = textureCar.Energy;
     carVec.textureHomogenity = textureCar.Homogeneity;
-    
-    carVec2 = [carVec.areaRatio, carVec.compacitat, carVec.corbatura, carVec.numColors, carVec.textureContrast, carVec.textureCorrelation, carVec.textureEnergy, carVec.textureHomogenity];
+ 
+    carVec2 = [carVec.rectangularitat, carVec.compacitat, carVec.corbatura, carVec.elongacio, carVec.M1, carVec.M2, carVec.numColors, carVec.textureContrast, carVec.textureCorrelation, carVec.textureEnergy, carVec.textureHomogenity];
     
 end
 
